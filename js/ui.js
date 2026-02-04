@@ -56,7 +56,7 @@ export function hideSyncModal() {
  */
 export function updateLoadStatus(count, success) {
   const statusEl = $('loadStatus');
-  
+
   if (success) {
     setText(statusEl, MESSAGES.BG.LOADED(count));
     setStyle(statusEl, 'color', 'var(--success)');
@@ -78,12 +78,12 @@ export function updateLoadStatus(count, success) {
 export function updateModeUI(mode) {
   toggleClass('learningModeBtn', 'selected', mode === 'learning');
   toggleClass('examModeBtn', 'selected', mode === 'exam');
-  
-  const desc = mode === 'learning' 
-    ? MESSAGES.BG.MODE_DESC_LEARNING 
+
+  const desc = mode === 'learning'
+    ? MESSAGES.BG.MODE_DESC_LEARNING
     : MESSAGES.BG.MODE_DESC_EXAM;
   setText('modeDesc', desc);
-  
+
   removeClass('step2num', 'active');
   addClass('step2num', 'done');
   addClass('step3num', 'active');
@@ -95,18 +95,18 @@ export function updateModeUI(mode) {
 export function renderExamButtons() {
   const state = getState();
   const completed = getCompletedExams();
-  
+
   $('examPlaceholder').style.display = 'none';
   toggleVisibility('reshuffleBtn', true);
-  
+
   const html = state.exams.map((exam, i) => {
     const done = completed.has(i);
-    const style = done 
-      ? 'background:var(--success);color:#fff;border-color:var(--success);' 
+    const style = done
+      ? 'background:var(--success);color:#fff;border-color:var(--success);'
       : '';
     return `<button data-exam="${i}" style="${style}">Изпит ${i + 1} (${exam.length})</button>`;
   }).join('');
-  
+
   setHtml('examButtons', html);
 }
 
@@ -118,10 +118,10 @@ export function selectExamButton(index) {
   $('examButtons').querySelectorAll('button').forEach(btn => {
     btn.classList.remove('selected');
   });
-  
+
   const btn = $('examButtons').querySelector(`[data-exam="${index}"]`);
   if (btn) btn.classList.add('selected');
-  
+
   removeClass('step3num', 'active');
   addClass('step3num', 'done');
   $('startBtn').disabled = false;
@@ -151,10 +151,10 @@ export function resetSetupPanel() {
  */
 export function initExamUI() {
   const state = getState();
-  const modeLabel = isLearningMode() 
-    ? MESSAGES.BG.MODE_LEARNING 
+  const modeLabel = isLearningMode()
+    ? MESSAGES.BG.MODE_LEARNING
     : MESSAGES.BG.MODE_EXAM;
-  
+
   setText('modeIndicator', modeLabel);
   $('modeIndicator').className = state.currentMode;
   setStyle('progressFill', 'width', '0%');
@@ -168,38 +168,33 @@ export function renderQuestion() {
   const question = getCurrentQuestion();
   const state = getState();
   const qState = getQuestionState(qid);
-  
+
   if (!question) return;
-  
+
   ensureAnswerOrder(qid);
   const answerOrder = getAnswerOrder(qid);
-  
+
   // Update progress
   const answered = getAnsweredCount(state.questionState);
   const progress = (answered / state.stack.length) * 100;
   setStyle('progressFill', 'width', `${progress}%`);
-  
+
   // Update counter
   setText('counter', `[Q${qid}] ${state.currentIndex + 1}/${state.stack.length}`);
-  
+
   // Update question text
   setText('question', question.question);
-  
+
   // Clear result line
   const resultLine = $('resultLine');
   setHtml(resultLine, '');
   setStyle(resultLine, 'background', '');
   setStyle(resultLine, 'color', '');
-  
+
   // Update confidence checkboxes
   $('dontKnow').checked = qState?.dontKnow || false;
   $('notSure').checked = qState?.notSure || false;
-  
-  // Show time if available
-  if (qState?.time) {
-    setHtml('questionTime', `⏱️ ${qState.time}s`);
-  }
-  
+
   // Render answers
   const answersHtml = answerOrder.map(([letter, text]) => `
     <div class="answer" data-letter="${letter}">
@@ -209,15 +204,15 @@ export function renderQuestion() {
       </label>
     </div>
   `).join('');
-  
+
   setHtml('answers', answersHtml);
-  
+
   // Restore selected answer
   if (qState?.selectedAnswer) {
     const radio = document.querySelector(`input[name="answer"][value="${qState.selectedAnswer}"]`);
     if (radio) radio.checked = true;
   }
-  
+
   // Show result in learning mode if already answered
   if (isLearningMode() && qState?.status && qState.status !== 'unanswered') {
     showQuestionResult(qState);
@@ -232,19 +227,19 @@ export function renderQuestion() {
  */
 function showQuestionResult(qState) {
   const qid = getCurrentQuestionId();
-  
+
   // Disable inputs
   document.querySelectorAll('input[name="answer"]').forEach(r => r.disabled = true);
   $('dontKnow').disabled = true;
   $('notSure').disabled = true;
-  
+
   // Highlight answer
   const selectedWrapper = document.querySelector(
     `input[name="answer"][value="${qState.selectedAnswer}"]`
   )?.closest('.answer');
-  
+
   const resultLine = $('resultLine');
-  
+
   if (qState.status === 'correct') {
     selectedWrapper?.classList.add('correct');
     setHtml(resultLine, '✅ Вярно');
@@ -309,23 +304,23 @@ export function renderResults(options) {
     onNewExam,
     onViewStats
   } = options;
-  
+
   const stats = computeStats(questionState, stack);
   const total = stack.length;
   const pct = calcPercent(stats.correct, total);
   const passed = pct >= EXAM_CONFIG.PASS_THRESHOLD;
   const avgTime = total ? Math.round(stats.totalTime / total) : 0;
-  
-  const modeLabel = mode === 'learning' 
-    ? MESSAGES.BG.MODE_LEARNING 
+
+  const modeLabel = mode === 'learning'
+    ? MESSAGES.BG.MODE_LEARNING
     : MESSAGES.BG.MODE_EXAM;
-  
+
   // Build review buttons
   let reviewHtml = '';
   if (baseState && baseStack) {
     const bs = computeStats(baseState, baseStack);
     const allForReview = [...new Set([...bs.wrong, ...bs.dk, ...bs.ns])];
-    
+
     reviewHtml = `
       <div id="reviewButtons">
         <button id="reviewAllBtn" ${allForReview.length ? '' : 'disabled'}>
@@ -340,13 +335,13 @@ export function renderResults(options) {
         <button id="reviewDontKnowBtn" ${bs.dk.length ? '' : 'disabled'}>
           ❓ Не знам (${bs.dk.length})
         </button>
-        ${roundType !== ROUND_TYPES.BASE 
-          ? '<button id="backToBaseResultsBtn">⬅️ Основен</button>' 
-          : ''}
+        ${roundType !== ROUND_TYPES.BASE
+        ? '<button id="backToBaseResultsBtn">⬅️ Основен</button>'
+        : ''}
       </div>
     `;
   }
-  
+
   const html = `
     <h3>${ROUND_TITLES[roundType]} 
       <small style="font-weight:normal;color:var(--text2);">(${modeLabel})</small>
@@ -366,9 +361,9 @@ export function renderResults(options) {
       <button id="viewStatsBtn" style="flex:1;">📊 Статистики</button>
     </div>
   `;
-  
+
   setHtml('resultsPanel', html);
-  
+
   // Attach event handlers
   $('newExamBtn')?.addEventListener('click', onNewExam);
   $('viewStatsBtn')?.addEventListener('click', onViewStats);

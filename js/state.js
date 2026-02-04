@@ -38,34 +38,33 @@ const state = {
   questions: {},
   allQuestionIds: [],
   exams: [],
-  
+
   // Current exam state
   stack: [],
   currentIndex: 0,
   questionState: {},
   answerOrder: {},
-  
+
   // Base exam state (for review)
   baseStack: null,
   baseState: null,
-  
+
   // Timing
   examStartTime: null,
   questionStartTime: null,
   timerInterval: null,
-  questionTimerInterval: null,
-  
+
   // Mode and navigation
   currentMode: null, // 'learning' | 'exam'
   currentRoundType: ROUND_TYPES.BASE,
   selectedExamIndex: null,
-  
+
   // Progress tracking (persisted)
   completedLearning: new Set(),
   completedExam: new Set(),
   history: [],
   wrongCounts: {},
-  
+
   // Sync state
   syncId: null,
   isOnline: false,
@@ -115,8 +114,8 @@ export function getQuestionState(qid) {
  * @returns {Set<number>}
  */
 export function getCompletedExams() {
-  return state.currentMode === 'exam' 
-    ? state.completedExam 
+  return state.currentMode === 'exam'
+    ? state.completedExam
     : state.completedLearning;
 }
 
@@ -343,8 +342,6 @@ export function setQuestionStartTime(time) { state.questionStartTime = time; }
 export function getQuestionStartTime() { return state.questionStartTime; }
 export function setTimerInterval(interval) { state.timerInterval = interval; }
 export function getTimerInterval() { return state.timerInterval; }
-export function setQuestionTimerInterval(interval) { state.questionTimerInterval = interval; }
-export function getQuestionTimerInterval() { return state.questionTimerInterval; }
 
 // ============ DATA EXPORT/IMPORT ============
 

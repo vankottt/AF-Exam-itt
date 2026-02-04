@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="bg">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -9,14 +10,16 @@
   <meta name="apple-mobile-web-app-title" content="AF Exam">
   <meta name="description" content="Симулатор за подготовка за Agentforce изпит">
   <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23007bff'/><text x='50' y='65' text-anchor='middle' font-size='50'>📝</text></svg>">
+  <link rel="apple-touch-icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23007bff'/><text x='50' y='65' text-anchor='middle' font-size='50'>📝</text></svg>">
   <link rel="stylesheet" href="css/styles.css">
   <title>Agentforce Exam</title>
-  
+
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 </head>
+
 <body>
   <!-- Header -->
   <header>
@@ -141,7 +144,6 @@
       <div class="info-row">
         <span id="modeIndicator"></span>
         <p id="counter" class="faded-text"></p>
-        <div id="questionTime" class="faded-text" aria-live="off"></div>
       </div>
       <fieldset class="confidence-panel">
         <legend class="visually-hidden">Увереност</legend>
@@ -169,4 +171,5 @@
   <!-- Main JavaScript (ES6 Module) -->
   <script type="module" src="js/main.js"></script>
 </body>
+
 </html>

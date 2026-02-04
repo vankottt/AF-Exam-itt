@@ -17,7 +17,7 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
-  --shadow: 0 2px 4px rgba(0,0,0,0.1);
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .dark {
@@ -455,14 +455,6 @@ button:focus-visible {
   color: var(--text2);
 }
 
-#questionTime {
-  font-size: 13px;
-  color: var(--text2);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
 /* Mode Indicator */
 #modeIndicator {
   font-size: 11px;
@@ -786,8 +778,15 @@ button:focus-visible {
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* ============ RESPONSIVE ============ */
@@ -815,6 +814,7 @@ button:focus-visible {
 
 /* ============ PRINT STYLES ============ */
 @media print {
+
   #syncBtn,
   #darkModeBtn,
   #exitBtn,
