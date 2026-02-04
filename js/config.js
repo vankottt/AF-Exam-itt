@@ -13,6 +13,27 @@ export const EXAM_CONFIG = {
   }
 };
 
+// ============ SPACED REPETITION SETTINGS ============
+export const SPACED_REP_CONFIG = {
+  // Levels: 0 = new, 1-5 = learning stages
+  MAX_LEVEL: 5,
+
+  // How many questions before showing again based on level
+  INTERVALS: {
+    0: 2,    // New/wrong: show after 2 questions
+    1: 4,    // Level 1: show after 4 questions
+    2: 8,    // Level 2: show after 8 questions
+    3: 15,   // Level 3: show after 15 questions
+    4: 25,   // Level 4: show after 25 questions
+    5: 50    // Mastered: show after 50 questions
+  },
+
+  // Level changes
+  CORRECT_SURE: 2,      // +2 levels if correct and sure
+  CORRECT_NOT_SURE: 1,  // +1 level if correct but not sure
+  WRONG: -2             // -2 levels if wrong (min 0)
+};
+
 // ============ FIREBASE CONFIG ============
 export const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBJaaT_pLFyNixluOqop8IXrLity9FWjk4",
@@ -38,8 +59,10 @@ export const MESSAGES = {
     ERROR_LOAD: '❌ Грешка',
     MODE_LEARNING: '📚 Learning',
     MODE_EXAM: '📝 Exam',
+    MODE_SMART: '🧠 Smart',
     MODE_DESC_LEARNING: '📚 Виждаш верния отговор веднага.',
     MODE_DESC_EXAM: '📝 Резултатите се показват накрая.',
+    MODE_DESC_SMART: '🧠 Адаптивно учене - фокус върху слабите места.',
     CHOOSE_MODE: 'Избери как искаш да се упражняваш.',
     WAIT_QUESTIONS: 'Първо изчакай въпросите да се заредят.',
     CHOOSE_MODE_FIRST: 'Първо избери режим.',
@@ -64,6 +87,13 @@ export const MESSAGES = {
     NO_DATA: '—',
     NEED_MORE_EXAMS: 'Нужни са поне 2 изпита'
   }
+};
+
+// ============ MODES ============
+export const MODES = {
+  LEARNING: 'learning',
+  EXAM: 'exam',
+  SMART: 'smart'
 };
 
 // ============ ROUND TYPES ============

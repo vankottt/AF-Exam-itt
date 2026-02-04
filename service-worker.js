@@ -3,7 +3,7 @@
  * Handles caching and offline support
  */
 
-const CACHE_NAME = 'agentforce-exam-v3';
+const CACHE_NAME = 'agentforce-exam-v4';
 
 const STATIC_ASSETS = [
   './',
@@ -18,7 +18,8 @@ const STATIC_ASSETS = [
   './js/timer.js',
   './js/quiz.js',
   './js/stats.js',
-  './js/ui.js'
+  './js/ui.js',
+  './js/smart.js'
 ];
 
 // Install - cache static assets
@@ -84,12 +85,12 @@ async function cacheFirst(request) {
 
   try {
     const response = await fetch(request);
-    
+
     if (response.ok && response.type === 'basic') {
       const cache = await caches.open(CACHE_NAME);
       cache.put(request, response.clone());
     }
-    
+
     return response;
   } catch (error) {
     console.error('[SW] Fetch failed:', error);
@@ -105,21 +106,21 @@ async function cacheFirst(request) {
 async function networkFirst(request) {
   try {
     const response = await fetch(request);
-    
+
     if (response.ok) {
       const cache = await caches.open(CACHE_NAME);
       cache.put(request, response.clone());
     }
-    
+
     return response;
   } catch (error) {
     console.log('[SW] Network failed, trying cache:', request.url);
     const cached = await caches.match(request);
-    
+
     if (cached) {
       return cached;
     }
-    
+
     throw error;
   }
 }

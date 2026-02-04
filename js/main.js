@@ -3,13 +3,14 @@
  * Инициализация и свързване на всички модули
  */
 
-import { ROUND_TYPES, DELAYS, MESSAGES } from './config.js';
+import { ROUND_TYPES, DELAYS, MESSAGES, MODES } from './config.js';
 import * as state from './state.js';
 import * as storage from './storage.js';
 import * as timer from './timer.js';
 import * as quiz from './quiz.js';
 import * as stats from './stats.js';
 import * as ui from './ui.js';
+import * as smart from './smart.js';
 import { $, shuffle, confirmAction, showAlert, copyToClipboard } from './utils.js';
 
 // ============ INITIALIZATION ============
@@ -75,8 +76,9 @@ function setupEventListeners() {
   };
 
   // Mode selection
-  $('learningModeBtn').onclick = () => selectMode('learning');
-  $('examModeBtn').onclick = () => selectMode('exam');
+  $('learningModeBtn').onclick = () => selectMode(MODES.LEARNING);
+  $('examModeBtn').onclick = () => selectMode(MODES.EXAM);
+  $('smartModeBtn').onclick = () => selectMode(MODES.SMART);
 
   // Exam selection
   $('examButtons').onclick = (e) => {
@@ -110,6 +112,12 @@ function setupEventListeners() {
   // Help toggle
   $('helpToggle').onclick = ui.toggleHelpBox;
 
+  // Flag button
+  $('flagBtn').onclick = handleFlag;
+
+  // Notes
+  $('saveNoteBtn').onclick = handleSaveNote;
+
   // Keyboard shortcuts
   document.onkeydown = handleKeyboard;
 
@@ -119,6 +127,17 @@ function setupEventListeners() {
   $('clearStatsBtn').onclick = clearStats;
   $('resetAllBtn').onclick = resetAll;
   $('reviewWeakBtn').onclick = reviewWeakPoints;
+  $('reviewFlaggedBtn').onclick = reviewFlaggedQuestions;
+
+  // Exam details modal
+  $('closeExamDetails').onclick = () => {
+    $('examDetailsModal').classList.remove('show');
+  };
+  $('examDetailsModal').onclick = (e) => {
+    if (e.target === $('examDetailsModal')) {
+      $('examDetailsModal').classList.remove('show');
+    }
+  };
 
   // Sync modal
   $('syncBtn').onclick = () => {
@@ -139,7 +158,14 @@ function setupEventListeners() {
 function selectMode(mode) {
   state.setMode(mode);
   ui.updateModeUI(mode);
-  loadOrGenerateExams();
+
+  if (mode === MODES.SMART) {
+    // Update smart stats
+    const smartStats = smart.getSmartStats();
+    ui.updateSmartStats(smartStats);
+  } else {
+    loadOrGenerateExams();
+  }
 }
 
 function loadOrGenerateExams() {
@@ -172,9 +198,23 @@ function reshuffleExams() {
 
 function startExam() {
   const s = state.getState();
-  if (s.selectedExamIndex === null || !s.currentMode) return;
 
-  const examQuestions = s.exams[s.selectedExamIndex];
+  let examQuestions;
+
+  if (s.currentMode === MODES.SMART) {
+    // Smart mode: generate adaptive queue
+    examQuestions = smart.generateSmartQueue(30);
+    if (!examQuestions.length) {
+      showAlert('Няма заредени въпроси за Smart режим.');
+      return;
+    }
+  } else {
+    // Learning/Exam mode: use selected exam
+    if (s.selectedExamIndex === null) return;
+    examQuestions = s.exams[s.selectedExamIndex];
+  }
+
+  if (!examQuestions || !examQuestions.length) return;
   if (!quiz.startRound(ROUND_TYPES.BASE, examQuestions)) return;
 
   ui.showExamUI();
@@ -189,7 +229,15 @@ function exitExam() {
 
   timer.stopAllTimers();
   ui.showSetupPanel();
-  ui.renderExamButtons();
+
+  const s = state.getState();
+  if (s.currentMode === MODES.SMART) {
+    ui.updateModeUI(MODES.SMART);
+    const smartStats = smart.getSmartStats();
+    ui.updateSmartStats(smartStats);
+  } else {
+    ui.renderExamButtons();
+  }
 }
 
 function handleNext() {
@@ -242,12 +290,83 @@ function handleKeyboard(e) {
   // Arrow keys for navigation
   if (e.key === 'ArrowRight' || e.key === 'Enter') handleNext();
   if (e.key === 'ArrowLeft') handleBack();
+
+  // F key for flag
+  if (e.key === 'f' || e.key === 'F') handleFlag();
+}
+
+// ============ FLAG & NOTES ============
+
+function handleFlag() {
+  const qid = state.getCurrentQuestionId();
+  if (!qid) return;
+
+  const newState = state.toggleQuestionFlag(qid);
+  const flagBtn = $('flagBtn');
+  if (flagBtn) {
+    flagBtn.classList.toggle('flagged', newState);
+  }
+  storage.saveAll();
+}
+
+function handleSaveNote() {
+  const qid = state.getCurrentQuestionId();
+  const noteTextarea = $('questionNote');
+  if (!qid || !noteTextarea) return;
+
+  state.setQuestionNote(qid, noteTextarea.value);
+  storage.saveAll();
+
+  // Visual feedback
+  const btn = $('saveNoteBtn');
+  const originalText = btn.textContent;
+  btn.textContent = '✓ Запазено';
+  setTimeout(() => {
+    btn.textContent = originalText;
+  }, 1500);
 }
 
 function finishExam() {
   timer.stopAllTimers();
 
   const s = state.getState();
+
+  // Update spaced repetition data for smart mode
+  if (s.currentMode === MODES.SMART || s.currentMode === MODES.LEARNING) {
+    s.stack.forEach(qid => {
+      const qState = state.getQuestionState(qid);
+      if (qState && qState.status !== 'unanswered') {
+        smart.updateSpacedRepLevel(qid, qState.status === 'correct', qState.notSure);
+      }
+    });
+  }
+
+  // Record detailed history
+  if (s.currentRoundType === ROUND_TYPES.BASE) {
+    const examStats = quiz.computeStats(s.questionState, s.stack);
+
+    state.addExamHistory({
+      date: new Date().toISOString(),
+      mode: s.currentMode,
+      examIndex: s.selectedExamIndex,
+      duration: timer.getExamElapsed(),
+      results: {
+        total: s.stack.length,
+        correct: examStats.correct,
+        pct: s.stack.length ? Math.round((examStats.correct / s.stack.length) * 100) : 0,
+        passed: s.stack.length ? Math.round((examStats.correct / s.stack.length) * 100) >= 72 : false
+      },
+      questions: s.stack.map(qid => {
+        const qs = state.getQuestionState(qid);
+        return {
+          qid,
+          answer: qs?.selectedAnswer || null,
+          correct: qs?.status === 'correct'
+        };
+      })
+    });
+  }
+
   quiz.finishExam(
     s.currentRoundType,
     s.questionState,
@@ -307,11 +426,20 @@ function resetToSetup() {
   ui.showSetupPanel();
 
   const s = state.getState();
-  if (s.exams.length > 0 && s.currentMode) {
+
+  // Handle different modes
+  if (s.currentMode === MODES.SMART) {
+    // Smart mode - restore smart stats view
+    ui.updateModeUI(MODES.SMART);
+    const smartStats = smart.getSmartStats();
+    ui.updateSmartStats(smartStats);
+  } else if (s.exams.length > 0 && s.currentMode) {
+    // Learning/Exam mode - show exam buttons
     ui.renderExamButtons();
     state.setSelectedExamIndex(null);
     $('startBtn').disabled = true;
   } else {
+    // No mode selected - reset everything
     ui.resetSetupPanel();
   }
 }
@@ -319,8 +447,12 @@ function resetToSetup() {
 // ============ STATS ============
 
 function openStatsPanel() {
-  stats.updateStatsPanel();
+  stats.updateStatsPanel(showExamDetails);
   ui.showStatsPanel();
+}
+
+function showExamDetails(examId) {
+  stats.renderExamDetails(examId);
 }
 
 function clearStats() {
@@ -348,6 +480,24 @@ function reviewWeakPoints() {
   ui.hideStatsPanel();
 
   if (!quiz.startRound(ROUND_TYPES.REVIEW_WEAK, weakIds)) return;
+
+  ui.showExamUI();
+  ui.initExamUI();
+  timer.startExamTimer(finishExam);
+  timer.resetQuestionTimer();
+  ui.renderQuestion();
+}
+
+function reviewFlaggedQuestions() {
+  const flaggedIds = state.getFlaggedQuestionIds();
+  if (!flaggedIds.length) return;
+
+  const s = state.getState();
+  if (!s.currentMode) state.setMode('learning');
+
+  ui.hideStatsPanel();
+
+  if (!quiz.startRound(ROUND_TYPES.REVIEW_ALL, flaggedIds)) return;
 
   ui.showExamUI();
   ui.initExamUI();

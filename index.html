@@ -88,6 +88,15 @@
       <div id="weakPointsList"></div>
       <button id="reviewWeakBtn" class="btn-accent" disabled>🎯 Преговори слаби точки</button>
     </details>
+    <details class="weak-list">
+      <summary>🚩 Флагнати въпроси</summary>
+      <div id="flaggedList"></div>
+      <button id="reviewFlaggedBtn" class="btn-accent" disabled>🚩 Преговори флагнати</button>
+    </details>
+    <details class="weak-list">
+      <summary>📋 История на изпитите</summary>
+      <div id="examHistoryList"></div>
+    </details>
     <button id="clearStatsBtn" class="btn-danger">🗑️ Изтрий статистики</button>
     <button id="resetAllBtn" class="btn-secondary">🔄 Нулирай всичко</button>
   </section>
@@ -109,6 +118,7 @@
       <div class="mode-buttons">
         <button id="learningModeBtn" disabled>📚 Learning</button>
         <button id="examModeBtn" disabled>📝 Exam</button>
+        <button id="smartModeBtn" disabled>🧠 Smart</button>
       </div>
       <div class="mode-desc" id="modeDesc">Първо изчакай въпросите да се заредят.</div>
     </div>
@@ -120,6 +130,32 @@
       </div>
       <div id="examButtons" role="group" aria-label="Exam selection"></div>
       <div id="examPlaceholder">Първо избери режим.</div>
+
+      <!-- Smart Mode Stats (shown when Smart is selected) -->
+      <div id="smartStats" class="hidden">
+        <div class="smart-stats-grid">
+          <div class="smart-stat mastered">
+            <span class="smart-stat-value" id="smartMastered">0</span>
+            <span class="smart-stat-label">🎯 Научени</span>
+          </div>
+          <div class="smart-stat learning">
+            <span class="smart-stat-value" id="smartLearning">0</span>
+            <span class="smart-stat-label">📖 Учиш</span>
+          </div>
+          <div class="smart-stat struggling">
+            <span class="smart-stat-value" id="smartStruggling">0</span>
+            <span class="smart-stat-label">⚠️ Трудни</span>
+          </div>
+          <div class="smart-stat new">
+            <span class="smart-stat-value" id="smartNew">0</span>
+            <span class="smart-stat-label">🆕 Нови</span>
+          </div>
+        </div>
+        <div class="smart-progress">
+          <div class="smart-progress-bar" id="smartProgressBar"></div>
+        </div>
+        <p class="smart-progress-text" id="smartProgressText">0% овладени</p>
+      </div>
     </div>
     <div class="setup-step">
       <button id="statsBtn">📊 Виж статистики</button>
@@ -145,11 +181,14 @@
         <span id="modeIndicator"></span>
         <p id="counter" class="faded-text"></p>
       </div>
-      <fieldset class="confidence-panel">
-        <legend class="visually-hidden">Увереност</legend>
-        <label><input type="checkbox" id="dontKnow"> ❓ Не знам</label>
-        <label><input type="checkbox" id="notSure"> ⚠️ Не съм сигурен</label>
-      </fieldset>
+      <div class="question-actions">
+        <fieldset class="confidence-panel">
+          <legend class="visually-hidden">Увереност</legend>
+          <label><input type="checkbox" id="dontKnow"> ❓ Не знам</label>
+          <label><input type="checkbox" id="notSure"> ⚠️ Не съм сигурен</label>
+        </fieldset>
+        <button id="flagBtn" class="flag-btn" aria-label="Флагни въпроса">🚩</button>
+      </div>
     </div>
     <div class="question-box">
       <p id="question"></p>
@@ -159,6 +198,14 @@
       <div id="answers" role="radiogroup"></div>
       <div id="resultLine" aria-live="polite"></div>
     </fieldset>
+
+    <!-- Notes Section (collapsible) -->
+    <details class="notes-section" id="notesSection">
+      <summary>📝 Бележка към този въпрос</summary>
+      <textarea id="questionNote" placeholder="Добави бележка..." rows="2" aria-label="Бележка към въпроса"></textarea>
+      <button id="saveNoteBtn" class="save-note-btn">💾 Запази</button>
+    </details>
+
     <nav class="nav-buttons">
       <button id="backBtn">← Back</button>
       <button id="nextBtn" class="btn-accent">Next →</button>
@@ -167,6 +214,14 @@
 
   <!-- Results Panel -->
   <section id="resultsPanel" class="hidden" aria-labelledby="resultsTitle"></section>
+
+  <!-- Exam Details Modal -->
+  <div id="examDetailsModal" class="sync-modal" role="dialog" aria-labelledby="examDetailsTitle">
+    <div class="sync-modal-content exam-details-content">
+      <h3 id="examDetailsTitle">📋 Детайли на изпит <button id="closeExamDetails" aria-label="Close">✕</button></h3>
+      <div id="examDetailsBody"></div>
+    </div>
+  </div>
 
   <!-- Main JavaScript (ES6 Module) -->
   <script type="module" src="js/main.js"></script>

@@ -65,6 +65,15 @@ const state = {
   history: [],
   wrongCounts: {},
 
+  // NEW: Question metadata (flags & notes)
+  questionMeta: {},  // { qid: { flagged: bool, note: string } }
+
+  // NEW: Spaced Repetition data
+  spacedRepetition: {},  // { qid: { level: 0-5, lastSeen: timestamp, seenCount: number } }
+
+  // NEW: Detailed exam history
+  examHistory: [],  // Array of detailed exam results
+
   // Sync state
   syncId: null,
   isOnline: false,
@@ -125,6 +134,22 @@ export function getCompletedExams() {
  */
 export function isLearningMode() {
   return state.currentMode === 'learning';
+}
+
+/**
+ * Check if currently in smart mode
+ * @returns {boolean}
+ */
+export function isSmartMode() {
+  return state.currentMode === 'smart';
+}
+
+/**
+ * Check if currently in exam mode
+ * @returns {boolean}
+ */
+export function isExamMode() {
+  return state.currentMode === 'exam';
 }
 
 /**
@@ -269,6 +294,9 @@ export function resetAllData() {
   state.exams = [];
   state.currentMode = null;
   state.selectedExamIndex = null;
+  state.questionMeta = {};
+  state.spacedRepetition = {};
+  state.examHistory = [];
 }
 
 /**
@@ -277,6 +305,118 @@ export function resetAllData() {
 export function clearStats() {
   state.history = [];
   state.wrongCounts = {};
+}
+
+// ============ QUESTION META (FLAGS & NOTES) ============
+
+/**
+ * Get meta for a question
+ * @param {number} qid - Question ID
+ * @returns {{flagged: boolean, note: string}}
+ */
+export function getQuestionMeta(qid) {
+  return state.questionMeta[qid] || { flagged: false, note: '' };
+}
+
+/**
+ * Toggle flag for a question
+ * @param {number} qid - Question ID
+ * @returns {boolean} - New flag state
+ */
+export function toggleQuestionFlag(qid) {
+  if (!state.questionMeta[qid]) {
+    state.questionMeta[qid] = { flagged: false, note: '' };
+  }
+  state.questionMeta[qid].flagged = !state.questionMeta[qid].flagged;
+  return state.questionMeta[qid].flagged;
+}
+
+/**
+ * Set note for a question
+ * @param {number} qid - Question ID
+ * @param {string} note - Note text
+ */
+export function setQuestionNote(qid, note) {
+  if (!state.questionMeta[qid]) {
+    state.questionMeta[qid] = { flagged: false, note: '' };
+  }
+  state.questionMeta[qid].note = note;
+}
+
+/**
+ * Get all flagged question IDs
+ * @returns {number[]}
+ */
+export function getFlaggedQuestionIds() {
+  return Object.entries(state.questionMeta)
+    .filter(([_, meta]) => meta.flagged)
+    .map(([qid, _]) => Number(qid));
+}
+
+// ============ SPACED REPETITION ============
+
+/**
+ * Get spaced repetition data for a question
+ * @param {number} qid - Question ID
+ * @returns {{level: number, lastSeen: number, seenCount: number}}
+ */
+export function getSpacedRepData(qid) {
+  return state.spacedRepetition[qid] || { level: 0, lastSeen: 0, seenCount: 0 };
+}
+
+/**
+ * Update spaced repetition data for a question
+ * @param {number} qid - Question ID
+ * @param {Object} data - Data to update
+ */
+export function updateSpacedRepData(qid, data) {
+  state.spacedRepetition[qid] = {
+    ...getSpacedRepData(qid),
+    ...data
+  };
+}
+
+/**
+ * Get all spaced repetition data
+ * @returns {Object}
+ */
+export function getAllSpacedRepData() {
+  return state.spacedRepetition;
+}
+
+// ============ DETAILED EXAM HISTORY ============
+
+/**
+ * Add detailed exam result
+ * @param {Object} examResult
+ */
+export function addExamHistory(examResult) {
+  state.examHistory.push({
+    id: 'exam_' + Date.now(),
+    ...examResult
+  });
+
+  // Keep only last 50 exams
+  if (state.examHistory.length > 50) {
+    state.examHistory = state.examHistory.slice(-50);
+  }
+}
+
+/**
+ * Get exam history
+ * @returns {Array}
+ */
+export function getExamHistory() {
+  return state.examHistory;
+}
+
+/**
+ * Get specific exam by ID
+ * @param {string} examId
+ * @returns {Object|undefined}
+ */
+export function getExamById(examId) {
+  return state.examHistory.find(e => e.id === examId);
 }
 
 // ============ NAVIGATION ============
@@ -356,7 +496,10 @@ export function getAllData() {
     completedExam: [...state.completedExam],
     history: state.history,
     wrongCounts: state.wrongCounts,
-    exams: state.exams
+    exams: state.exams,
+    questionMeta: state.questionMeta,
+    spacedRepetition: state.spacedRepetition,
+    examHistory: state.examHistory
   };
 }
 
@@ -371,6 +514,9 @@ export function applyData(data) {
   if (data.history) state.history = data.history;
   if (data.wrongCounts) state.wrongCounts = data.wrongCounts;
   if (data.exams?.length) state.exams = data.exams;
+  if (data.questionMeta) state.questionMeta = data.questionMeta;
+  if (data.spacedRepetition) state.spacedRepetition = data.spacedRepetition;
+  if (data.examHistory) state.examHistory = data.examHistory;
   state.lastCloudTimestamp = data.timestamp || 0;
 }
 

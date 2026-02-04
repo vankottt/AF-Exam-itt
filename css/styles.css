@@ -245,8 +245,8 @@ button:focus-visible {
 
 .mode-buttons button {
   flex: 1;
-  min-width: 140px;
-  padding: 14px 16px;
+  min-width: 100px;
+  padding: 14px 12px;
 }
 
 .mode-buttons button.selected {
@@ -259,6 +259,78 @@ button:focus-visible {
   font-size: 13px;
   color: var(--text2);
   margin-top: 8px;
+}
+
+/* Smart Mode Stats */
+#smartStats {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.smart-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.smart-stat {
+  text-align: center;
+  padding: 8px 4px;
+  border-radius: var(--radius-sm);
+}
+
+.smart-stat.mastered {
+  background: rgba(40, 167, 69, 0.2);
+}
+
+.smart-stat.learning {
+  background: rgba(0, 123, 255, 0.2);
+}
+
+.smart-stat.struggling {
+  background: rgba(255, 193, 7, 0.2);
+}
+
+.smart-stat.new {
+  background: rgba(108, 117, 125, 0.2);
+}
+
+.smart-stat-value {
+  display: block;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.smart-stat-label {
+  display: block;
+  font-size: 11px;
+  color: var(--text2);
+  margin-top: 2px;
+}
+
+.smart-progress {
+  height: 8px;
+  background: var(--bg3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.smart-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--success), var(--accent));
+  transition: width 0.3s;
+  width: 0;
+}
+
+.smart-progress-text {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text2);
+  margin: 8px 0 0;
 }
 
 /* Exam Buttons */
@@ -358,6 +430,120 @@ button:focus-visible {
 
 .weak-item:last-child {
   border-bottom: none;
+}
+
+/* Exam History List */
+.exam-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  margin-bottom: 6px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.exam-history-item:hover {
+  background: var(--bg3);
+}
+
+.exam-history-item .date {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.exam-history-item .mode {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
+
+.exam-history-item .mode.learning {
+  background: rgba(40, 167, 69, 0.2);
+  color: var(--success);
+}
+
+.exam-history-item .mode.exam {
+  background: rgba(255, 193, 7, 0.2);
+  color: #856404;
+}
+
+.exam-history-item .mode.smart {
+  background: rgba(0, 123, 255, 0.2);
+  color: var(--accent);
+}
+
+.exam-history-item .result {
+  font-weight: 600;
+}
+
+.exam-history-item .result.passed {
+  color: var(--success);
+}
+
+.exam-history-item .result.failed {
+  color: var(--danger);
+}
+
+/* Exam Details Modal */
+.exam-details-content {
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.exam-details-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.exam-details-stat {
+  padding: 10px;
+  background: var(--bg2);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+
+.exam-details-stat .value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.exam-details-stat .label {
+  font-size: 12px;
+  color: var(--text2);
+}
+
+.exam-details-questions {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.exam-details-q {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  background: var(--bg2);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+
+.exam-details-q.correct {
+  border-left: 3px solid var(--success);
+}
+
+.exam-details-q.wrong {
+  border-left: 3px solid var(--danger);
+}
+
+.dark .exam-history-item .mode.exam {
+  color: #ffeeba;
 }
 
 #reviewWeakBtn {
@@ -477,6 +663,11 @@ button:focus-visible {
   color: #856404;
 }
 
+#modeIndicator.smart {
+  background: #cce5ff;
+  color: #004085;
+}
+
 .dark #modeIndicator.learning {
   background: #1e5631;
   color: #a3e4b7;
@@ -487,7 +678,19 @@ button:focus-visible {
   color: #ffeeba;
 }
 
+.dark #modeIndicator.smart {
+  background: #0c3d6e;
+  color: #a3cfff;
+}
+
 /* Confidence Panel */
+.question-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .confidence-panel {
   border: 1px solid var(--border);
   background: var(--bg2);
@@ -497,6 +700,7 @@ button:focus-visible {
   display: flex;
   gap: 20px;
   flex-wrap: wrap;
+  flex: 1;
 }
 
 .confidence-panel label {
@@ -510,6 +714,87 @@ button:focus-visible {
   width: 20px;
   height: 20px;
   cursor: pointer;
+}
+
+/* Flag Button */
+.flag-btn {
+  padding: 10px 14px;
+  font-size: 18px;
+  border-radius: var(--radius-md);
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.flag-btn:hover {
+  background: var(--bg3);
+}
+
+.flag-btn.flagged {
+  background: #fff3cd;
+  border-color: #ffc107;
+}
+
+.dark .flag-btn.flagged {
+  background: #5c4813;
+  border-color: #ffc107;
+}
+
+/* Notes Section */
+.notes-section {
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg2);
+}
+
+.notes-section summary {
+  padding: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text2);
+}
+
+.notes-section summary:hover {
+  color: var(--text);
+}
+
+.notes-section[open] summary {
+  border-bottom: 1px solid var(--border);
+}
+
+.notes-section textarea {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.notes-section textarea:focus {
+  outline: none;
+  background: var(--bg2);
+}
+
+.save-note-btn {
+  margin: 8px 12px 12px;
+  padding: 8px 16px;
+  font-size: 13px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.save-note-btn:hover {
+  opacity: 0.9;
 }
 
 /* Question Box */

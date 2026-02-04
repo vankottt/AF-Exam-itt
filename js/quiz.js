@@ -9,7 +9,7 @@ import {
   getQuestionState, getAnswerOrder, setAnswerOrder,
   updateQuestionState, incrementWrongCount, markExamCompleted,
   addHistoryEntry, saveBaseState, initStack, nextQuestion, prevQuestion,
-  isLastQuestion, isLearningMode, setRoundType, getCompletedExams,
+  isLastQuestion, isLearningMode, isSmartMode, setRoundType, getCompletedExams,
   setExams, setSelectedExamIndex
 } from './state.js';
 import { shuffle, calcPercent } from './utils.js';
@@ -32,10 +32,10 @@ import { saveAll } from './storage.js';
  */
 export function ensureAnswerOrder(qid) {
   if (getAnswerOrder(qid)) return;
-  
+
   const question = getQuestion(qid);
   if (!question) return;
-  
+
   const shuffled = shuffle(Object.entries(question.answers));
   setAnswerOrder(qid, shuffled);
 }
@@ -49,14 +49,14 @@ export function ensureAnswerOrder(qid) {
 export function updateDraftState(selectedAnswer, dontKnow, notSure) {
   const qid = getCurrentQuestionId();
   if (!qid) return;
-  
+
   const existing = getQuestionState(qid);
-  
+
   // In learning mode, don't update if already answered
   if (isLearningMode() && existing?.status && existing.status !== 'unanswered') {
     return;
   }
-  
+
   updateQuestionState(qid, {
     selectedAnswer: selectedAnswer || existing?.selectedAnswer || null,
     status: existing?.status || 'unanswered',
@@ -73,16 +73,16 @@ export function updateDraftState(selectedAnswer, dontKnow, notSure) {
  */
 export function checkCurrentQuestion(selectedAnswer) {
   if (!selectedAnswer) return false;
-  
+
   const qid = getCurrentQuestionId();
   const question = getCurrentQuestion();
   if (!qid || !question) return false;
-  
+
   const timeSpent = getQuestionElapsed();
   const isCorrect = question.correct.includes(selectedAnswer);
-  
+
   const existing = getQuestionState(qid);
-  
+
   updateQuestionState(qid, {
     selectedAnswer,
     status: isCorrect ? 'correct' : 'wrong',
@@ -90,11 +90,11 @@ export function checkCurrentQuestion(selectedAnswer) {
     notSure: existing?.notSure || false,
     time: timeSpent
   });
-  
+
   if (!isCorrect) {
     incrementWrongCount(qid);
   }
-  
+
   return true;
 }
 
@@ -111,15 +111,15 @@ export function computeStats(questionState, questionIds) {
   const ns = [];
   const correctButNotSure = [];
   let totalTime = 0;
-  
+
   questionIds.forEach(qid => {
     const state = questionState[qid];
     if (!state?.status || state.status === 'unanswered') return;
-    
+
     if (state.dontKnow) dk.push(qid);
     if (state.notSure) ns.push(qid);
     totalTime += state.time || 0;
-    
+
     if (state.status === 'correct') {
       correct++;
       if (state.notSure) correctButNotSure.push(qid);
@@ -127,7 +127,7 @@ export function computeStats(questionState, questionIds) {
       wrong.push(qid);
     }
   });
-  
+
   return { correct, wrong, dk, ns, correctButNotSure, totalTime };
 }
 
@@ -151,11 +151,11 @@ export function generateExams(allQuestionIds) {
   const shuffled = shuffle([...allQuestionIds]);
   const exams = [];
   const size = Math.ceil(shuffled.length / EXAM_CONFIG.TOTAL_EXAMS);
-  
+
   for (let i = 0; i < EXAM_CONFIG.TOTAL_EXAMS; i++) {
     exams.push(shuffled.slice(i * size, (i + 1) * size));
   }
-  
+
   return exams;
 }
 
@@ -166,11 +166,11 @@ export function generateExams(allQuestionIds) {
  */
 export function startRound(roundType, questionIds) {
   if (!questionIds?.length) return false;
-  
+
   setRoundType(roundType);
   initStack(questionIds);
   resetQuestionTimer();
-  
+
   return true;
 }
 
@@ -186,16 +186,16 @@ export function finishExam(roundType, questionState, stack, mode, selectedExamIn
   // Only record for base rounds
   if (roundType === ROUND_TYPES.BASE) {
     saveBaseState();
-    
+
     if (selectedExamIndex !== null) {
       markExamCompleted();
     }
-    
+
     const stats = computeStats(questionState, stack);
     const total = stack.length;
     const pct = calcPercent(stats.correct, total);
     const avgTime = total ? Math.round(stats.totalTime / total) : 0;
-    
+
     addHistoryEntry({
       date: new Date().toISOString(),
       mode,
@@ -204,7 +204,7 @@ export function finishExam(roundType, questionState, stack, mode, selectedExamIn
       pct,
       avgTime
     });
-    
+
     saveAll();
   }
 }
@@ -218,18 +218,19 @@ export function finishExam(roundType, questionState, stack, mode, selectedExamIn
  */
 export function handleNext(onFinish, onShowQuestion, selectedAnswer) {
   if (!selectedAnswer) return false;
-  
+
   const qid = getCurrentQuestionId();
-  const state = getQuestionState(qid);
-  
-  if (isLearningMode()) {
-    // In learning mode, first show result, then move to next
-    if (!state || state.status === 'unanswered') {
+  const qState = getQuestionState(qid);
+
+  // Learning and Smart modes show result immediately
+  if (isLearningMode() || isSmartMode()) {
+    // First show result, then move to next
+    if (!qState || qState.status === 'unanswered') {
       checkCurrentQuestion(selectedAnswer);
       onShowQuestion(); // Show result
       return true;
     }
-    
+
     // Already shown result, move to next
     if (!isLastQuestion()) {
       nextQuestion();
@@ -241,9 +242,9 @@ export function handleNext(onFinish, onShowQuestion, selectedAnswer) {
       return false;
     }
   } else {
-    // In exam mode, check and move immediately
+    // Exam mode: check and move immediately
     checkCurrentQuestion(selectedAnswer);
-    
+
     if (!isLastQuestion()) {
       nextQuestion();
       resetQuestionTimer();
@@ -278,9 +279,9 @@ export function handleBack(onShowQuestion) {
  */
 export function getReviewQuestions(baseState, baseStack, reviewType) {
   if (!baseState || !baseStack) return [];
-  
+
   const stats = computeStats(baseState, baseStack);
-  
+
   switch (reviewType) {
     case ROUND_TYPES.REVIEW_WRONG:
       return stats.wrong;

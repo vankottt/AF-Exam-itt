@@ -3,11 +3,12 @@
  * Рендериране и манипулация на интерфейса
  */
 
-import { MESSAGES, ROUND_TYPES, ROUND_TITLES, EXAM_CONFIG } from './config.js';
+import { MESSAGES, ROUND_TYPES, ROUND_TITLES, EXAM_CONFIG, MODES } from './config.js';
 import {
   getState, getCurrentQuestionId, getCurrentQuestion,
   getQuestionState, getAnswerOrder, getCorrectText,
-  getCompletedExams, isLearningMode
+  getCompletedExams, isLearningMode, isSmartMode, isExamMode,
+  getQuestionMeta
 } from './state.js';
 import { $, setText, setHtml, setStyle, toggleVisibility, addClass, removeClass, toggleClass, formatTimeVerbose, calcPercent } from './utils.js';
 import { ensureAnswerOrder, getAnsweredCount, computeStats } from './quiz.js';
@@ -64,6 +65,7 @@ export function updateLoadStatus(count, success) {
     addClass('step2num', 'active');
     $('learningModeBtn').disabled = false;
     $('examModeBtn').disabled = false;
+    $('smartModeBtn').disabled = false;
     setText('modeDesc', MESSAGES.BG.CHOOSE_MODE);
   } else {
     setText(statusEl, MESSAGES.BG.ERROR_LOAD);
@@ -73,20 +75,42 @@ export function updateLoadStatus(count, success) {
 
 /**
  * Update mode selection UI
- * @param {'learning'|'exam'} mode - Selected mode
+ * @param {'learning'|'exam'|'smart'} mode - Selected mode
  */
 export function updateModeUI(mode) {
   toggleClass('learningModeBtn', 'selected', mode === 'learning');
   toggleClass('examModeBtn', 'selected', mode === 'exam');
+  toggleClass('smartModeBtn', 'selected', mode === 'smart');
 
-  const desc = mode === 'learning'
-    ? MESSAGES.BG.MODE_DESC_LEARNING
-    : MESSAGES.BG.MODE_DESC_EXAM;
+  let desc;
+  if (mode === 'learning') {
+    desc = MESSAGES.BG.MODE_DESC_LEARNING;
+  } else if (mode === 'exam') {
+    desc = MESSAGES.BG.MODE_DESC_EXAM;
+  } else {
+    desc = MESSAGES.BG.MODE_DESC_SMART;
+  }
   setText('modeDesc', desc);
 
   removeClass('step2num', 'active');
   addClass('step2num', 'done');
   addClass('step3num', 'active');
+
+  // Show/hide smart stats
+  toggleVisibility('smartStats', mode === 'smart');
+
+  // Show/hide exam buttons based on mode
+  if (mode === 'smart') {
+    toggleVisibility('examButtons', false);
+    toggleVisibility('examPlaceholder', false);
+    toggleVisibility('reshuffleBtn', false);
+    $('startBtn').disabled = false;
+  } else {
+    // Learning/Exam mode - will show exam buttons after loadOrGenerateExams()
+    toggleVisibility('examButtons', true);
+    toggleVisibility('examPlaceholder', true);
+    $('startBtn').disabled = true;
+  }
 }
 
 /**
@@ -98,6 +122,7 @@ export function renderExamButtons() {
 
   $('examPlaceholder').style.display = 'none';
   toggleVisibility('reshuffleBtn', true);
+  toggleVisibility('examButtons', true);
 
   const html = state.exams.map((exam, i) => {
     const done = completed.has(i);
@@ -108,6 +133,24 @@ export function renderExamButtons() {
   }).join('');
 
   setHtml('examButtons', html);
+}
+
+/**
+ * Update smart mode stats display
+ * @param {Object} smartStats - Stats from getSmartStats()
+ */
+export function updateSmartStats(smartStats) {
+  setText('smartMastered', smartStats.mastered);
+  setText('smartLearning', smartStats.learning);
+  setText('smartStruggling', smartStats.struggling);
+  setText('smartNew', smartStats.notStarted);
+
+  const progressBar = $('smartProgressBar');
+  if (progressBar) {
+    progressBar.style.width = `${smartStats.masteredPct}%`;
+  }
+
+  setText('smartProgressText', `${smartStats.masteredPct}% овладени`);
 }
 
 /**
@@ -133,6 +176,7 @@ export function selectExamButton(index) {
 export function resetSetupPanel() {
   removeClass('learningModeBtn', 'selected');
   removeClass('examModeBtn', 'selected');
+  removeClass('smartModeBtn', 'selected');
   removeClass('step2num', 'done');
   addClass('step2num', 'active');
   removeClass('step3num', 'done');
@@ -140,6 +184,8 @@ export function resetSetupPanel() {
   setHtml('examButtons', '');
   $('examPlaceholder').style.display = '';
   toggleVisibility('reshuffleBtn', false);
+  toggleVisibility('smartStats', false);
+  toggleVisibility('examButtons', true);
   $('startBtn').disabled = true;
   setText('modeDesc', MESSAGES.BG.CHOOSE_MODE);
 }
@@ -151,9 +197,15 @@ export function resetSetupPanel() {
  */
 export function initExamUI() {
   const state = getState();
-  const modeLabel = isLearningMode()
-    ? MESSAGES.BG.MODE_LEARNING
-    : MESSAGES.BG.MODE_EXAM;
+  let modeLabel;
+
+  if (isLearningMode()) {
+    modeLabel = MESSAGES.BG.MODE_LEARNING;
+  } else if (isSmartMode()) {
+    modeLabel = MESSAGES.BG.MODE_SMART;
+  } else {
+    modeLabel = MESSAGES.BG.MODE_EXAM;
+  }
 
   setText('modeIndicator', modeLabel);
   $('modeIndicator').className = state.currentMode;
@@ -168,6 +220,7 @@ export function renderQuestion() {
   const question = getCurrentQuestion();
   const state = getState();
   const qState = getQuestionState(qid);
+  const qMeta = getQuestionMeta(qid);
 
   if (!question) return;
 
@@ -195,6 +248,26 @@ export function renderQuestion() {
   $('dontKnow').checked = qState?.dontKnow || false;
   $('notSure').checked = qState?.notSure || false;
 
+  // Update flag button
+  const flagBtn = $('flagBtn');
+  if (flagBtn) {
+    toggleClass(flagBtn, 'flagged', qMeta.flagged);
+  }
+
+  // Update note
+  const noteTextarea = $('questionNote');
+  if (noteTextarea) {
+    noteTextarea.value = qMeta.note || '';
+  }
+
+  // Close notes section if empty
+  const notesSection = $('notesSection');
+  if (notesSection && !qMeta.note) {
+    notesSection.removeAttribute('open');
+  } else if (notesSection && qMeta.note) {
+    notesSection.setAttribute('open', '');
+  }
+
   // Render answers
   const answersHtml = answerOrder.map(([letter, text]) => `
     <div class="answer" data-letter="${letter}">
@@ -213,8 +286,8 @@ export function renderQuestion() {
     if (radio) radio.checked = true;
   }
 
-  // Show result in learning mode if already answered
-  if (isLearningMode() && qState?.status && qState.status !== 'unanswered') {
+  // Show result in learning/smart mode if already answered
+  if ((isLearningMode() || isSmartMode()) && qState?.status && qState.status !== 'unanswered') {
     showQuestionResult(qState);
   } else {
     enableAnswerSelection();
@@ -311,9 +384,14 @@ export function renderResults(options) {
   const passed = pct >= EXAM_CONFIG.PASS_THRESHOLD;
   const avgTime = total ? Math.round(stats.totalTime / total) : 0;
 
-  const modeLabel = mode === 'learning'
-    ? MESSAGES.BG.MODE_LEARNING
-    : MESSAGES.BG.MODE_EXAM;
+  let modeLabel;
+  if (mode === 'learning') {
+    modeLabel = MESSAGES.BG.MODE_LEARNING;
+  } else if (mode === 'smart') {
+    modeLabel = MESSAGES.BG.MODE_SMART;
+  } else {
+    modeLabel = MESSAGES.BG.MODE_EXAM;
+  }
 
   // Build review buttons
   let reviewHtml = '';

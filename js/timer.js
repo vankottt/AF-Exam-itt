@@ -8,7 +8,7 @@ import {
   setExamStartTime, getExamStartTime,
   setQuestionStartTime, getQuestionStartTime,
   setTimerInterval, getTimerInterval,
-  isLearningMode
+  isLearningMode, isSmartMode
 } from './state.js';
 import { $, formatTime, toggleVisibility } from './utils.js';
 
@@ -45,8 +45,8 @@ export function startExamTimer(onExpired) {
   onTimeExpiredCallback = onExpired;
   setExamStartTime(Date.now());
 
-  // Hide timer in learning mode
-  if (isLearningMode()) {
+  // Hide timer in learning and smart mode
+  if (isLearningMode() || isSmartMode()) {
     toggleVisibility('timer', false);
     return;
   }
