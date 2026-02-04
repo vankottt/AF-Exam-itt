@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#007bff">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AF Exam">
+  <meta name="description" content="Симулатор за подготовка за Agentforce изпит">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23007bff'/><text x='50' y='65' text-anchor='middle' font-size='50'>📝</text></svg>">
+  <link rel="stylesheet" href="css/styles.css">
+  <title>Agentforce Exam</title>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <h2>
+      Agentforce Exam
+      <span class="header-buttons">
+        <button id="syncBtn" aria-label="Cloud Sync">🔗<span id="syncStatus"></span></button>
+        <button id="darkModeBtn" aria-label="Toggle dark mode">🌙</button>
+      </span>
+    </h2>
+  </header>
+
+  <!-- Sync Modal -->
+  <div id="syncModal" class="sync-modal" role="dialog" aria-labelledby="syncModalTitle">
+    <div class="sync-modal-content">
+      <h3 id="syncModalTitle">☁️ Cloud Sync <button id="closeSyncModal" aria-label="Close">✕</button></h3>
+      <div class="sync-section">
+        <label><span class="sync-live"></span> Real-time синхронизация</label>
+        <div class="sync-info">Промените се синхронизират автоматично между устройствата.</div>
+      </div>
+      <div class="sync-section">
+        <label for="currentSyncId">📋 Sync ID:</label>
+        <div class="sync-id-box">
+          <input type="text" id="currentSyncId" readonly placeholder="Генерира се...">
+          <button id="copySyncIdBtn" aria-label="Copy Sync ID">📋</button>
+        </div>
+      </div>
+      <div class="sync-section">
+        <label for="otherSyncId">🔗 Свържи друго устройство:</label>
+        <div class="sync-id-box">
+          <input type="text" id="otherSyncId" placeholder="Въведи Sync ID">
+          <button id="connectSyncBtn">🔗</button>
+        </div>
+      </div>
+      <div class="sync-section">
+        <button id="resetSyncBtn" class="btn-danger">🗑️ Нов Sync ID</button>
+        <div class="sync-info">Създава нов профил. Старите данни остават на другите устройства.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Panel -->
+  <section id="statsPanel" class="hidden" aria-labelledby="statsPanelTitle">
+    <h3 id="statsPanelTitle">📊 Статистики <button id="closeStatsBtn">✕</button></h3>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-value" id="statTotalExams">0</div>
+        <div class="stat-label">Изпити</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statAvgScore">0%</div>
+        <div class="stat-label">Среден резултат</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statAvgTime">0s</div>
+        <div class="stat-label">Ср. време/въпрос</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statPassRate">0%</div>
+        <div class="stat-label">Взети изпити</div>
+      </div>
+    </div>
+    <canvas id="historyChart" aria-label="История на резултатите"></canvas>
+    <details class="weak-list">
+      <summary>🎯 Слаби точки</summary>
+      <div id="weakPointsList"></div>
+      <button id="reviewWeakBtn" class="btn-accent" disabled>🎯 Преговори слаби точки</button>
+    </details>
+    <button id="clearStatsBtn" class="btn-danger">🗑️ Изтрий статистики</button>
+    <button id="resetAllBtn" class="btn-secondary">🔄 Нулирай всичко</button>
+  </section>
+
+  <!-- Setup Panel -->
+  <section id="setupPanel" aria-labelledby="setupTitle">
+    <div class="setup-step">
+      <div class="step-header">
+        <div class="step-number" id="step1num">1</div>
+        <div class="step-title">Зареждане на въпроси</div>
+        <span id="loadStatus">⏳ Зареждане...</span>
+      </div>
+    </div>
+    <div class="setup-step">
+      <div class="step-header">
+        <div class="step-number" id="step2num">2</div>
+        <div class="step-title">Избери режим</div>
+      </div>
+      <div class="mode-buttons">
+        <button id="learningModeBtn" disabled>📚 Learning</button>
+        <button id="examModeBtn" disabled>📝 Exam</button>
+      </div>
+      <div class="mode-desc" id="modeDesc">Първо изчакай въпросите да се заредят.</div>
+    </div>
+    <div class="setup-step">
+      <div class="step-header">
+        <div class="step-number" id="step3num">3</div>
+        <div class="step-title">Избери изпит</div>
+        <button id="reshuffleBtn" class="hidden">🔀 Разбъркай</button>
+      </div>
+      <div id="examButtons" role="group" aria-label="Exam selection"></div>
+      <div id="examPlaceholder">Първо избери режим.</div>
+    </div>
+    <div class="setup-step">
+      <button id="statsBtn">📊 Виж статистики</button>
+      <button id="startBtn" class="btn-success" disabled>▶️ Старт</button>
+    </div>
+  </section>
+
+  <!-- Exam UI -->
+  <section id="examUI" class="hidden" aria-labelledby="examTitle">
+    <div id="examHeader">
+      <button id="exitBtn">✕ Изход</button>
+      <div id="timer" aria-live="polite">Time: 105:00</div>
+      <span id="helpToggle" role="button" tabindex="0">🛈 Помощ</span>
+    </div>
+    <div id="helpBox" class="hidden">
+      <div>🔢 <b>1–4</b> избор | ➡️ <b>→/Enter</b> Next | ⬅️ <b>←</b> Back</div>
+    </div>
+    <div id="progressBar" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+      <div id="progressFill"></div>
+    </div>
+    <div class="question-header">
+      <div class="info-row">
+        <span id="modeIndicator"></span>
+        <p id="counter" class="faded-text"></p>
+        <div id="questionTime" class="faded-text" aria-live="off"></div>
+      </div>
+      <fieldset class="confidence-panel">
+        <legend class="visually-hidden">Увереност</legend>
+        <label><input type="checkbox" id="dontKnow"> ❓ Не знам</label>
+        <label><input type="checkbox" id="notSure"> ⚠️ Не съм сигурен</label>
+      </fieldset>
+    </div>
+    <div class="question-box">
+      <p id="question"></p>
+    </div>
+    <fieldset class="answers-box">
+      <legend class="visually-hidden">Отговори</legend>
+      <div id="answers" role="radiogroup"></div>
+      <div id="resultLine" aria-live="polite"></div>
+    </fieldset>
+    <nav class="nav-buttons">
+      <button id="backBtn">← Back</button>
+      <button id="nextBtn" class="btn-accent">Next →</button>
+    </nav>
+  </section>
+
+  <!-- Results Panel -->
+  <section id="resultsPanel" class="hidden" aria-labelledby="resultsTitle"></section>
+
+  <!-- Main JavaScript (ES6 Module) -->
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
